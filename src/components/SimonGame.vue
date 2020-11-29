@@ -25,7 +25,7 @@
           <h3 class="raund__title">Раунд: {{roundLevel}}</h3>
           <span class="loss_meseg"
             v-if="isLoss"
-          >{{lossMesseg}} {{roundLevel}}</span>
+          >Вы проиграли со счётом: {{lossLevel}}</span>
           <button class="btn_starn_game"
             @click.prevent="startGame()"
           >Начать</button>
@@ -69,10 +69,12 @@ export default {
     speedLevel: '1500',
     lossMesseg: '',
     roundLevel: 0,
+    lossLevel: 0,
     countNote: 4,
     melody:[],
     melodyGamer:[],
     playingMelody: -1,
+    noteArr: []
   }),
   methods:{
     startGame(){
@@ -101,6 +103,7 @@ export default {
       if(!this.isGameStart) return
 
       this.melodyGamer.push(note)
+      this.playNoteSound(note)
 
       if(!this.checkMelody()){
           this.gameLoss()
@@ -117,12 +120,15 @@ export default {
     },
     gameLoss(){
       this.isLoss = true
-      this.lossMesseg = 'Вы проиграли со счётом'
       this.isGameStart = false
+      this.lossLevel = this.roundLevel
+      this.roundLevel = 0
+
+      this.melody = []
     },
     checkMelody(){
+      //Если мелодии не совпадают result = false
       const result = this.melodyGamer.every((element, index)=>{
-        console.log(element);
         return element === this.melody[index]   
       })
 
@@ -131,7 +137,7 @@ export default {
     playMelody(melody){
       if(melody.length > 0){
         this.playingMelody = melody.shift()
-
+        this.playNoteSound(this.playingMelody)
 
         setTimeout(()=>{this.playingMelody = -1}, +this.speedLevel - 100)
         setTimeout(this.playMelody, +this.speedLevel, melody)
@@ -141,7 +147,19 @@ export default {
       this.isMelodyPlaying = false
       return
     },
+    playNoteSound(note){
+      this.noteArr[note].play()
+    },
   },
+  created(){
+    //Создаем HTML audio node для воспроизведения нот
+    for(let i = 1; i <= this.countNote; i++){
+      this.noteArr.push(
+        new Audio(`/sounds/${i}.mp3`)
+      )
+    }
+   
+  }
 }
 </script>
 
