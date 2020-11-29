@@ -22,14 +22,17 @@
       </div>
       <div class="game__info">
         <div class="raund">
-          <h3 class="raund__title">Раунд: 0</h3>
+          <h3 class="raund__title">Раунд: {{roundLevel}}</h3>
+          <span class="loss_meseg"
+            v-if="isLoss"
+          >{{lossMesseg}} {{roundLevel}}</span>
           <button class="btn_starn_game"
             @click.prevent="startGame()"
           >Начать</button>
         </div>
         <div class="game__setup">
           <div class="group__setup_btn">
-            <input type="radio" name='speedSetup' id='speed_lvl_1' class="speed__setup" checked="checked"
+            <input type="radio" name='speedSetup' id='speed_lvl_1' class="speed__setup" 
               value="1500"
               v-model="speedLevel"
             >
@@ -61,25 +64,69 @@ export default {
   name: 'HelloWorld',
   data:()=>({
     isGameStart: false,
-    speedLevel: '',
-    melody:[1,2,3],
+    isMelodyPlaying: false,
+    isLoss: false,
+    speedLevel: '1500',
+    lossMesseg: '',
+    roundLevel: 0,
+    countNote: 4,
+    melody:[],
     melodyGamer:[],
     playingMelody: -1,
   }),
   methods:{
     startGame(){
+      if(this.isGameStart) return
       this.isGameStart = true
+
+      this.isLoss = false
+      this.lossMesseg = ''
+      this.melodyGamer = []
+
       this.addNoteInMelody()
+      this.isMelodyPlaying = true
       this.playMelody([...this.melody])
+      
     },
     addNoteInMelody(){
       this.melody.push(
-        Math.floor( Math.random() * 4 )
+        Math.floor( Math.random() * this.countNote )
       )
     },
     gameClick(note){
+      if(this.isMelodyPlaying) return 
+      this.playingMelody = note
+      setTimeout(()=>{this.playingMelody = -1}, 300)
+
       if(!this.isGameStart) return
+
       this.melodyGamer.push(note)
+
+      if(!this.checkMelody()){
+          this.gameLoss()
+          return
+      }
+      
+      if(this.melody.length == this.melodyGamer.length){
+        
+        this.roundLevel++
+        this.isGameStart = false
+        setTimeout(this.startGame, 1500) 
+      }
+
+    },
+    gameLoss(){
+      this.isLoss = true
+      this.lossMesseg = 'Вы проиграли со счётом'
+      this.isGameStart = false
+    },
+    checkMelody(){
+      const result = this.melodyGamer.every((element, index)=>{
+        console.log(element);
+        return element === this.melody[index]   
+      })
+
+      return result
     },
     playMelody(melody){
       if(melody.length > 0){
@@ -91,6 +138,7 @@ export default {
         return
       }
       this.playingMelody = -1
+      this.isMelodyPlaying = false
       return
     },
   },
@@ -110,6 +158,9 @@ export default {
   font-size: 45px;
   color: #333;
   font-weight: bold;
+}
+.loss_meseg{
+  display: block;
 }
 .raund__title{
   font-size: 25px;
