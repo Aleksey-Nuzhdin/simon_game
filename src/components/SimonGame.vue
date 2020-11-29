@@ -25,10 +25,15 @@
           <h3 class="raund__title">Раунд: {{roundLevel}}</h3>
           <span class="loss_meseg"
             v-if="isLoss"
-          >Вы проиграли со счётом: {{lossLevel}}</span>
+          >Вы закончили со счётом: {{lossLevel}}</span>
           <button class="btn_starn_game"
+            v-if="!isBtnStop"
             @click.prevent="startGame()"
           >Начать</button>
+          <button class="btn_starn_game"
+            v-if="isBtnStop"
+            @click.prevent="stopGame()"
+          >Стоп</button>
         </div>
         <div class="game__setup">
           <div class="group__setup_btn">
@@ -66,68 +71,87 @@ export default {
     isGameStart: false,
     isMelodyPlaying: false,
     isLoss: false,
+    isBtnStop: false,
     speedLevel: '1500',
-    lossMesseg: '',
     roundLevel: 0,
     lossLevel: 0,
     countNote: 4,
     melody:[],
     melodyGamer:[],
     playingMelody: -1,
-    noteArr: []
+    noteArr: [],
+    setTimeoutNote: [],
   }),
   methods:{
     startGame(){
+      //Если игра уже начата ничего не делать
       if(this.isGameStart) return
       this.isGameStart = true
-
+      this.isBtnStop = true
       this.isLoss = false
-      this.lossMesseg = ''
+
+      //Очищаем мелодию игрока от уже сыгранной мелодии
       this.melodyGamer = []
 
       this.addNoteInMelody()
-      this.isMelodyPlaying = true
+      //Запускаем проигрыш мелодии
+      this.isMelodyPlaying = true 
       this.playMelody([...this.melody])
       
     },
+    stopGame(){
+      //Останавливаем игру, без проигрыша
+      this.isBtnStop = false
+      //Очишаем setTimeout чтобы остановить воспроизведение мелодии
+      clearTimeout(this.setTimeoutNote)
+      //Завершаем игру
+      this.gameLoss()
+    },
     addNoteInMelody(){
+      //Добавляем случайную ноту
       this.melody.push(
         Math.floor( Math.random() * this.countNote )
       )
     },
     gameClick(note){
-      if(this.isMelodyPlaying) return 
+      //Если мелодия играет, ничего не дать
+      if(this.isMelodyPlaying) return
       this.playingMelody = note
-      setTimeout(()=>{this.playingMelody = -1}, 300)
-
-      if(!this.isGameStart) return
-
-      this.melodyGamer.push(note)
+      //Если игра не началась, то можнопросто воспроизвести ноту
+      //для большей интерактивности
       this.playNoteSound(note)
-
+      setTimeout(()=>{this.playingMelody = -1}, 300)
+      //Проеряем началась ли игра
+      if(!this.isGameStart) return
+      //Добовляем выбранную играком мелодию
+      this.melodyGamer.push(note)
+      
+      //Проверяем верна ли последовательность
       if(!this.checkMelody()){
           this.gameLoss()
           return
       }
-      
+      //Если игрок правильно повторил мелодию, запускаем новый раунд
       if(this.melody.length == this.melodyGamer.length){
         
         this.roundLevel++
         this.isGameStart = false
-        setTimeout(this.startGame, 1500) 
+        setTimeout(this.startGame, 1500)
       }
 
     },
     gameLoss(){
+      //Запоминаем сколько было сыграно раундов
+      this.lossLevel = this.roundLevel
+      //сбрасываем переменные
       this.isLoss = true
       this.isGameStart = false
-      this.lossLevel = this.roundLevel
       this.roundLevel = 0
-
       this.melody = []
+      
     },
     checkMelody(){
-      //Если мелодии не совпадают result = false
+      //Если мелодии не совпадают result = false инче true
       const result = this.melodyGamer.every((element, index)=>{
         return element === this.melody[index]   
       })
@@ -136,19 +160,32 @@ export default {
     },
     playMelody(melody){
       if(melody.length > 0){
+
         this.playingMelody = melody.shift()
+        //проигрываем ноту
         this.playNoteSound(this.playingMelody)
 
+        //Немного раньше обнуляем playingMelody, чтобы кнопочка моргнула, если играется несколько раз подряд
         setTimeout(()=>{this.playingMelody = -1}, +this.speedLevel - 100)
-        setTimeout(this.playMelody, +this.speedLevel, melody)
+        //По рекурсии проигрываем все ноты
+        this.setTimeoutNote = setTimeout(this.playMelody, +this.speedLevel, melody)
         return
       }
+      //Когда мелодия кончилась сбрасываем переменные
       this.playingMelody = -1
       this.isMelodyPlaying = false
       return
     },
     playNoteSound(note){
+      //Останавлием воспроизведения, чтобы нота прозвучала, 
+      //даже если не успела закончится предыдущая
+      this.stopNoteSoud(note)
       this.noteArr[note].play()
+    },
+    stopNoteSoud(note){
+      //Останавливаем и сбрасываем время
+      this.noteArr[note].pause();
+      this.noteArr[note].currentTime = 0;
     },
   },
   created(){
@@ -187,10 +224,10 @@ export default {
 }
 .game__info{
   margin-left: 20px;
+  width: 250px;
 }
 .btn_starn_game{
-  height: 50px;
-  width: 100px;
+  padding: 14px;
   margin-top: 10px;
   font-size: 20px;
   font-weight: bold;
